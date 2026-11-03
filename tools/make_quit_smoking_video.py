@@ -464,13 +464,19 @@ def render() -> Iterator[np.ndarray]:
 
     for i in range(FRAMES):
         t = i / FPS
-        day_t = ease_in_out(smoothstep(4.55, 5.95, t))
+        day_t = ease_in_out(smoothstep(4.55, 5.85, t))
         arr = night + (day - night) * day_t
+
+        # A sunrise flash hides the muddy middle of the dark-to-day crossfade.
+        bloom_p = clamp01((t - 4.5) / 1.05)
+        bloom = math.sin(math.pi * bloom_p) ** 1.6
+        if bloom > 0.002:
+            arr = arr + (np.array([255.0, 252.0, 242.0], dtype=np.float32) - arr) * (bloom * 0.62)
 
         if day_t > 0:
             arr = arr + (sun_rgb - arr) * (sun_a * day_t)[..., None]
 
-        smoke_fade = 1.0 - smoothstep(4.4, 6.2, t)
+        smoke_fade = 1.0 - smoothstep(4.3, 5.35, t)
         if smoke_fade > 0.01:
             mask_small = np.zeros((H // scale, W // scale), dtype=np.float32)
             plume.draw(mask_small, t, smoke_tex, fade=smoke_fade, scale=scale)
@@ -496,9 +502,9 @@ def render() -> Iterator[np.ndarray]:
 
         draw_caption(d, t, "每一口，都在燃烧时间", 1.0, 4.2, y=1520, size=62,
                      color=(240, 235, 226), weight="Light", tracking=12)
-        draw_caption(d, t, "掐灭它，只需要 10 秒", 5.2, 7.35, y=850, size=70,
+        draw_caption(d, t, "掐灭它，只需要 10 秒", 5.45, 7.35, y=850, size=70,
                      color=(34, 48, 52), weight="Medium", tracking=6)
-        draw_caption(d, t, "给肺一次重新呼吸的机会", 5.8, 7.5, y=975, size=52,
+        draw_caption(d, t, "给肺一次重新呼吸的机会", 5.95, 7.5, y=975, size=52,
                      color=(86, 106, 110), weight="Regular", tracking=8)
 
         card_in = smoothstep(7.45, 8.2, t)
